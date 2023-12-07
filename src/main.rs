@@ -1,7 +1,8 @@
 pub mod day1;
 pub mod day2;
 pub mod day3;
+pub mod day4;
 
 fn main() {
-    day3::day3_p2()
+    day4::day4_p1()
 }
