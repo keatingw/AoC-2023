@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-fn day_1_p1() {
+pub fn day_1_p1() {
     let input_strings: Vec<&str> = include_str!("../examples/day1_input.txt").lines().collect();
     let digits: Vec<u32> = input_strings
         .iter()
@@ -15,7 +15,7 @@ fn day_1_p1() {
     println!("digits sum: {:#?}", digits.iter().sum::<u32>());
 }
 
-fn day_1_p2() {
+pub fn day_1_p2() {
     let numeric_map: HashMap<&str, &str> = HashMap::from_iter(vec![
         ("one", "1"),
         ("two", "2"),
