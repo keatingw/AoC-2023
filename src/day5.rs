@@ -196,7 +196,106 @@ pub fn day5_p1() {
 
     let mut locations: Vec<u64> = Vec::new();
 
+    // NB this whole solution is immensely slow because we iterate over seeds applying anything
+    // suitable to fix them instead of going mapping-back
     for seed in &seed_numbers {
+        let m1: Vec<&SeedMapping> = seed_soil_maps
+            .iter()
+            .filter(|x| x.contains_seed(seed))
+            .collect();
+        let o1: u64 = match m1.len() {
+            0 => seed.clone(),
+            1 => m1[0].map_seed(seed),
+            _ => panic!("Had map count applicable >1"),
+        };
+
+        let m2: Vec<&SeedMapping> = soil_fertilizer_maps
+            .iter()
+            .filter(|x| x.contains_seed(&o1))
+            .collect();
+        let o2: u64 = match m2.len() {
+            0 => o1.clone(),
+            1 => m2[0].map_seed(&o1),
+            _ => panic!("Had map count applicable >1"),
+        };
+
+        let m3: Vec<&SeedMapping> = fertilizer_water_maps
+            .iter()
+            .filter(|x| x.contains_seed(&o2))
+            .collect();
+        let o3: u64 = match m3.len() {
+            0 => o2.clone(),
+            1 => m3[0].map_seed(&o2),
+            _ => panic!("Had map count applicable >1"),
+        };
+
+        let m4: Vec<&SeedMapping> = water_light_maps
+            .iter()
+            .filter(|x| x.contains_seed(&o3))
+            .collect();
+        let o4: u64 = match m4.len() {
+            0 => o3.clone(),
+            1 => m4[0].map_seed(&o3),
+            _ => panic!("Had map count applicable >1"),
+        };
+
+        let m5: Vec<&SeedMapping> = light_temperature_maps
+            .iter()
+            .filter(|x| x.contains_seed(&o4))
+            .collect();
+        let o5: u64 = match m5.len() {
+            0 => o4.clone(),
+            1 => m5[0].map_seed(&o4),
+            _ => panic!("Had map count applicable >1"),
+        };
+
+        let m6: Vec<&SeedMapping> = temperature_humidity_maps
+            .iter()
+            .filter(|x| x.contains_seed(&o5))
+            .collect();
+        let o6: u64 = match m6.len() {
+            0 => o5.clone(),
+            1 => m6[0].map_seed(&o5),
+            _ => panic!("Had map count applicable >1"),
+        };
+
+        let m7: Vec<&SeedMapping> = humidity_location_maps
+            .iter()
+            .filter(|x| x.contains_seed(&o6))
+            .collect();
+        let o7: u64 = match m7.len() {
+            0 => o6.clone(),
+            1 => m7[0].map_seed(&o6),
+            _ => panic!("Had map count applicable >1"),
+        };
+
+        locations.push(o7);
+    }
+    println!("Minimum location: {:#?}", locations.iter().min());
+}
+
+pub fn day5_p2() {
+    let (
+        seed_numbers,
+        seed_soil_maps,
+        soil_fertilizer_maps,
+        fertilizer_water_maps,
+        water_light_maps,
+        light_temperature_maps,
+        temperature_humidity_maps,
+        humidity_location_maps,
+    ) = read_day5_input();
+
+    let mut locations: Vec<u64> = Vec::new();
+
+    let full_seed_numbers = seed_numbers
+        .chunks_exact(2)
+        .flat_map(|x| x[0]..x[0] + x[1])
+        .collect::<Vec<u64>>();
+
+    // NB this whole solution is immensely slow because we iterate over seeds applying anything
+    // suitable to fix them instead of going mapping-back
+    for seed in &full_seed_numbers {
         let m1: Vec<&SeedMapping> = seed_soil_maps
             .iter()
             .filter(|x| x.contains_seed(seed))
