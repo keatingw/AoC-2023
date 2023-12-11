@@ -1,4 +1,6 @@
-#[derive(Debug)]
+use std::{sync::Arc, thread};
+
+#[derive(Debug, Clone)]
 pub struct SeedMapping {
     pub dest_start: u64,
     pub src_start: u64,
@@ -285,28 +287,46 @@ pub fn day5_p2() {
         temperature_humidity_maps,
         humidity_location_maps,
     ) = read_day5_input();
-
-    let mut locations: Vec<u64> = Vec::new();
+    let seed_soil_maps_arc = Arc::new(seed_soil_maps);
+    let soil_fertilizer_maps_arc = Arc::new(soil_fertilizer_maps);
+    let fertilizer_water_maps_arc = Arc::new(fertilizer_water_maps);
+    let water_light_maps_arc = Arc::new(water_light_maps);
+    let light_temperature_maps_arc = Arc::new(light_temperature_maps);
+    let temperature_humidity_maps_arc = Arc::new(temperature_humidity_maps);
+    let humidity_location_maps_arc = Arc::new(humidity_location_maps);
 
     let full_seed_numbers = seed_numbers
         .chunks_exact(2)
         .flat_map(|x| x[0]..x[0] + x[1])
         .collect::<Vec<u64>>();
 
+    println!("Expanded to {:#?} total seeds", &full_seed_numbers.len());
+
+    let threads: Vec<thread::JoinHandle<u64>> = full_seed_numbers
+        .into_iter()
+        .map(|seed| {
+            let seed_soil_maps_arc = seed_soil_maps_arc.clone();
+            let soil_fertilizer_maps_arc = soil_fertilizer_maps_arc.clone();
+            let fertilizer_water_maps_arc = fertilizer_water_maps_arc.clone();
+            let water_light_maps_arc = water_light_maps_arc.clone();
+            let light_temperature_maps_arc = light_temperature_maps_arc.clone();
+            let temperature_humidity_maps_arc = temperature_humidity_maps_arc.clone();
+            let humidity_location_maps_arc = humidity_location_maps_arc.clone();
+            thread::spawn(move ||
     // NB this whole solution is immensely slow because we iterate over seeds applying anything
     // suitable to fix them instead of going mapping-back
-    for seed in &full_seed_numbers {
-        let m1: Vec<&SeedMapping> = seed_soil_maps
+    {
+        let m1: Vec<&SeedMapping> = seed_soil_maps_arc
             .iter()
-            .filter(|x| x.contains_seed(seed))
+            .filter(|x| x.contains_seed(&seed))
             .collect();
         let o1: u64 = match m1.len() {
             0 => seed.clone(),
-            1 => m1[0].map_seed(seed),
+            1 => m1[0].map_seed(&seed),
             _ => panic!("Had map count applicable >1"),
         };
 
-        let m2: Vec<&SeedMapping> = soil_fertilizer_maps
+        let m2: Vec<&SeedMapping> = soil_fertilizer_maps_arc
             .iter()
             .filter(|x| x.contains_seed(&o1))
             .collect();
@@ -316,7 +336,7 @@ pub fn day5_p2() {
             _ => panic!("Had map count applicable >1"),
         };
 
-        let m3: Vec<&SeedMapping> = fertilizer_water_maps
+        let m3: Vec<&SeedMapping> = fertilizer_water_maps_arc
             .iter()
             .filter(|x| x.contains_seed(&o2))
             .collect();
@@ -326,7 +346,7 @@ pub fn day5_p2() {
             _ => panic!("Had map count applicable >1"),
         };
 
-        let m4: Vec<&SeedMapping> = water_light_maps
+        let m4: Vec<&SeedMapping> = water_light_maps_arc
             .iter()
             .filter(|x| x.contains_seed(&o3))
             .collect();
@@ -336,7 +356,7 @@ pub fn day5_p2() {
             _ => panic!("Had map count applicable >1"),
         };
 
-        let m5: Vec<&SeedMapping> = light_temperature_maps
+        let m5: Vec<&SeedMapping> = light_temperature_maps_arc
             .iter()
             .filter(|x| x.contains_seed(&o4))
             .collect();
@@ -346,7 +366,7 @@ pub fn day5_p2() {
             _ => panic!("Had map count applicable >1"),
         };
 
-        let m6: Vec<&SeedMapping> = temperature_humidity_maps
+        let m6: Vec<&SeedMapping> = temperature_humidity_maps_arc
             .iter()
             .filter(|x| x.contains_seed(&o5))
             .collect();
@@ -356,7 +376,7 @@ pub fn day5_p2() {
             _ => panic!("Had map count applicable >1"),
         };
 
-        let m7: Vec<&SeedMapping> = humidity_location_maps
+        let m7: Vec<&SeedMapping> = humidity_location_maps_arc
             .iter()
             .filter(|x| x.contains_seed(&o6))
             .collect();
@@ -365,8 +385,10 @@ pub fn day5_p2() {
             1 => m7[0].map_seed(&o6),
             _ => panic!("Had map count applicable >1"),
         };
-
-        locations.push(o7);
-    }
+        o7
+    })
+        })
+        .collect();
+    let locations: Vec<u64> = threads.into_iter().map(|x| x.join().unwrap()).collect();
     println!("Minimum location: {:#?}", locations.iter().min());
 }
