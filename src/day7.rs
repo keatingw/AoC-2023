@@ -7,6 +7,17 @@ enum CamelCard {
     Number(u16),
 }
 
+fn letter_rank(l: &char) -> u16 {
+    match l {
+        'T' => 0,
+        'J' => 1,
+        'Q' => 2,
+        'K' => 3,
+        'A' => 4,
+        _ => panic!("{l} not expected"),
+    }
+}
+
 impl PartialEq for CamelCard {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
@@ -34,7 +45,9 @@ impl Ord for CamelCard {
             (CamelCard::Letter(_), CamelCard::Number(_)) => Ordering::Greater,
             (CamelCard::Number(_), CamelCard::Letter(_)) => Ordering::Less,
             // if both letters, need to compare backwards as letters compare opposite order
-            (CamelCard::Letter(ll), CamelCard::Letter(rl)) => rl.cmp(&ll),
+            (CamelCard::Letter(ll), CamelCard::Letter(rl)) => {
+                letter_rank(&ll).cmp(&letter_rank(&rl))
+            }
             // if both numbers, can compare the normal way
             (CamelCard::Number(ln), CamelCard::Number(rn)) => ln.cmp(&rn),
         }
@@ -183,6 +196,7 @@ pub fn day7_p1() {
         .collect();
 
     hands.sort_by(|x, y| x.0.cmp(&y.0));
+    println!("sorted hands: {:#?}", hands);
     // println!("sorted hands: {:#?}", hands);
     let total_winnings = hands
         .iter()
