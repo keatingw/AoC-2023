@@ -54,7 +54,7 @@ impl Ord for CamelCard {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 enum CamelHand {
     HighCard([CamelCard; 5]),
     Pair([CamelCard; 5]),
@@ -66,7 +66,7 @@ enum CamelHand {
 }
 
 impl CamelHand {
-    fn from_cards(cards: &[CamelCard; 5]) -> Self {
+    fn from_cards_p1(cards: &[CamelCard; 5]) -> Self {
         let mut frequencies: Vec<(CamelCard, u32)> = cards
             .iter()
             .fold(
@@ -97,22 +97,56 @@ impl CamelHand {
             _ => CamelHand::HighCard(cards.clone()),
         }
     }
-}
-impl PartialEq for CamelHand {
-    fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (CamelHand::FiveOfKind(l), CamelHand::FiveOfKind(r)) => l == r,
-            (CamelHand::FourOfKind(l), CamelHand::FourOfKind(r)) => l == r,
-            (CamelHand::FullHouse(l), CamelHand::FullHouse(r)) => l == r,
-            (CamelHand::ThreeOfKind(l), CamelHand::ThreeOfKind(r)) => l == r,
-            (CamelHand::TwoPair(l), CamelHand::TwoPair(r)) => l == r,
-            (CamelHand::Pair(l), CamelHand::Pair(r)) => l == r,
-            (CamelHand::HighCard(l), CamelHand::HighCard(r)) => l == r,
-            _ => false,
+
+    fn from_cards_p2(cards: &[CamelCard; 5]) -> Self {
+        let mut frequencies: Vec<(CamelCard, u32)> = cards
+            .iter()
+            .filter(|x| x != &&CamelCard::Letter('J'))
+            .fold(
+                HashMap::new(),
+                |mut map: HashMap<&CamelCard, u32>, val: &CamelCard| {
+                    *map.entry(val).or_insert(0) += 1;
+                    map
+                },
+            )
+            .into_iter()
+            .map(|(x, y)| (x.clone(), y))
+            .collect();
+        let num_jokers = cards
+            .iter()
+            .filter(|x| x == &&CamelCard::Letter('J'))
+            .count() as u32;
+
+        // sort most -> least frequency
+        frequencies.sort_by_key(|x| -(x.1 as i64));
+
+        // top frequencies to determine hand type
+        match if frequencies.len() > 0 {
+            frequencies[0].1 + num_jokers
+        } else {
+            // fallback if all were jokers
+            num_jokers
+        } {
+            5 => CamelHand::FiveOfKind(cards.clone()),
+            4 => CamelHand::FourOfKind(cards.clone()),
+            3 => {
+                if frequencies[1].1 == 2 {
+                    CamelHand::FullHouse(cards.clone())
+                } else {
+                    CamelHand::ThreeOfKind(cards.clone())
+                }
+            }
+            2 => {
+                if frequencies[1].1 == 2 {
+                    CamelHand::TwoPair(cards.clone())
+                } else {
+                    CamelHand::Pair(cards.clone())
+                }
+            }
+            _ => CamelHand::HighCard(cards.clone()),
         }
     }
 }
-impl Eq for CamelHand {}
 
 impl PartialOrd for CamelHand {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
@@ -192,11 +226,30 @@ pub fn day7_p1() {
     // println!("{:#?}", &inputs);
     let mut hands: Vec<(CamelHand, u32)> = inputs
         .iter()
-        .map(|x| (CamelHand::from_cards(&x.0), x.1))
+        .map(|x| (CamelHand::from_cards_p1(&x.0), x.1))
         .collect();
 
     hands.sort_by(|x, y| x.0.cmp(&y.0));
     println!("sorted hands: {:#?}", hands);
+    // println!("sorted hands: {:#?}", hands);
+    let total_winnings = hands
+        .iter()
+        .enumerate()
+        .map(|(idx, x)| (idx as u32 + 1) * x.1)
+        .sum::<u32>();
+    println!("total winnings: {:#?}", total_winnings);
+}
+
+pub fn day7_p2() {
+    let inputs = get_day7_input();
+    // println!("{:#?}", &inputs);
+    let mut hands: Vec<(CamelHand, u32)> = inputs
+        .iter()
+        .map(|x| (CamelHand::from_cards_p2(&x.0), x.1))
+        .collect();
+
+    hands.sort_by(|x, y| x.0.cmp(&y.0));
+    println!("sorted hands: {:?}", hands);
     // println!("sorted hands: {:#?}", hands);
     let total_winnings = hands
         .iter()
