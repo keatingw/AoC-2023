@@ -7,5 +7,5 @@ pub mod day6;
 pub mod day7;
 
 fn main() {
-    day7::day7_p1()
+    day5::day5_p2()
 }
