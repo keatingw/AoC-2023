@@ -1,3 +1,4 @@
+use num::integer::lcm;
 use std::collections::HashMap;
 
 fn get_day8_input() -> (Vec<usize>, HashMap<&'static str, [&'static str; 2]>) {
@@ -27,21 +28,51 @@ fn get_day8_input() -> (Vec<usize>, HashMap<&'static str, [&'static str; 2]>) {
 
     (lr_instructions, slot_map)
 }
+
 pub fn day8_p1() {
     let (lr_instructions, slot_map) = get_day8_input();
     println!("{:#?}", lr_instructions);
     println!("{:#?}", slot_map);
     let mut cur_pos = "AAA";
     let mut iteration = 0;
-    let mut cur_dir_idx = 0;
 
-    while cur_pos != "ZZZ" {
+    for d in lr_instructions.iter().cycle() {
         iteration += 1;
         println!("before iteration={iteration}, cur_pos={cur_pos}");
-        let direction = lr_instructions[cur_dir_idx];
-        cur_pos = slot_map.get(cur_pos).unwrap()[direction];
+        cur_pos = slot_map.get(cur_pos).unwrap()[*d];
         println!("after iteration={iteration}, cur_pos={cur_pos}");
-        cur_dir_idx = (cur_dir_idx + 1) % lr_instructions.len();
+        if cur_pos == "ZZZ" {
+            break;
+        }
     }
     println!("Total steps: {iteration}");
+}
+
+pub fn day8_p2() {
+    let (lr_instructions, slot_map) = get_day8_input();
+    println!("{:#?}", lr_instructions);
+    println!("{:#?}", slot_map);
+    let cur_positions: Vec<&'static str> = slot_map
+        .keys()
+        .filter(|x| x.ends_with("A"))
+        .map(|x| *x)
+        .collect();
+    println!("Using {} positions", cur_positions.len());
+
+    let mut iterations: Vec<i64> = Vec::new();
+    for i in cur_positions {
+        let mut cur_pos = i;
+        iterations.push(0);
+        let iteration: &mut i64 = iterations.last_mut().unwrap();
+        for d in lr_instructions.iter().cycle() {
+            *iteration += 1;
+            cur_pos = slot_map.get(cur_pos).unwrap()[*d];
+            if cur_pos.ends_with("Z") {
+                break;
+            }
+        }
+        println!("initial position {i}, cycle number: {iteration}");
+    }
+    let lowest_mult = iterations.into_iter().fold(1, lcm);
+    println!("Total steps lcm: {}", lowest_mult);
 }
