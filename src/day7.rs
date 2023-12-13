@@ -1,33 +1,39 @@
 use std::cmp::{Eq, Ord, Ordering, PartialEq, PartialOrd};
 use std::collections::HashMap;
 
+enum Part {
+    One,
+    Two,
+}
 #[derive(Debug, Hash, Clone)]
 enum CamelCard {
-    Letter(char),
+    LetterP1(char),
     Number(u16),
+    LetterP2(char),
 }
 
-fn letter_rank(l: &char) -> u16 {
-    match l {
-        'T' => 0,
-        'J' => 1,
-        'Q' => 2,
-        'K' => 3,
-        'A' => 4,
-        _ => panic!("{l} not expected"),
+impl CamelCard {
+    fn card_rank(&self) -> u16 {
+        match self {
+            CamelCard::LetterP1('T') => 10,
+            CamelCard::LetterP1('J') => 11,
+            CamelCard::LetterP1('Q') => 12,
+            CamelCard::LetterP1('K') => 13,
+            CamelCard::LetterP1('A') => 14,
+            CamelCard::LetterP2('T') => 10,
+            CamelCard::LetterP2('J') => 1,
+            CamelCard::LetterP2('Q') => 12,
+            CamelCard::LetterP2('K') => 13,
+            CamelCard::LetterP2('A') => 14,
+            CamelCard::Number(x) => x.clone(),
+            _ => panic!("Did not expect card value {self:#?}"),
+        }
     }
 }
 
 impl PartialEq for CamelCard {
     fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            // letters != numbers
-            (CamelCard::Letter(_), CamelCard::Number(_)) => false,
-            (CamelCard::Number(_), CamelCard::Letter(_)) => false,
-            // if both same type, compare inner element
-            (CamelCard::Letter(ll), CamelCard::Letter(rl)) => ll == rl,
-            (CamelCard::Number(ln), CamelCard::Number(rn)) => ln == rn,
-        }
+        self.card_rank() == other.card_rank()
     }
 }
 impl Eq for CamelCard {}
@@ -40,17 +46,7 @@ impl PartialOrd for CamelCard {
 
 impl Ord for CamelCard {
     fn cmp(&self, other: &Self) -> Ordering {
-        match (self, other) {
-            // letters always > numbers
-            (CamelCard::Letter(_), CamelCard::Number(_)) => Ordering::Greater,
-            (CamelCard::Number(_), CamelCard::Letter(_)) => Ordering::Less,
-            // if both letters, need to compare backwards as letters compare opposite order
-            (CamelCard::Letter(ll), CamelCard::Letter(rl)) => {
-                letter_rank(&ll).cmp(&letter_rank(&rl))
-            }
-            // if both numbers, can compare the normal way
-            (CamelCard::Number(ln), CamelCard::Number(rn)) => ln.cmp(&rn),
-        }
+        self.card_rank().cmp(&other.card_rank())
     }
 }
 
@@ -101,7 +97,7 @@ impl CamelHand {
     fn from_cards_p2(cards: &[CamelCard; 5]) -> Self {
         let mut frequencies: Vec<(CamelCard, u32)> = cards
             .iter()
-            .filter(|x| x != &&CamelCard::Letter('J'))
+            .filter(|x| x != &&CamelCard::LetterP2('J'))
             .fold(
                 HashMap::new(),
                 |mut map: HashMap<&CamelCard, u32>, val: &CamelCard| {
@@ -114,7 +110,7 @@ impl CamelHand {
             .collect();
         let num_jokers = cards
             .iter()
-            .filter(|x| x == &&CamelCard::Letter('J'))
+            .filter(|x| x == &&CamelCard::LetterP2('J'))
             .count() as u32;
 
         // sort most -> least frequency
@@ -197,7 +193,7 @@ impl Ord for CamelHand {
     }
 }
 
-fn get_day7_input() -> Vec<([CamelCard; 5], u32)> {
+fn get_day7_input(part: Part) -> Vec<([CamelCard; 5], u32)> {
     let input_str = include_str!("../examples/day7_input.txt");
     input_str
         .lines()
@@ -209,7 +205,10 @@ fn get_day7_input() -> Vec<([CamelCard; 5], u32)> {
                     if c.is_numeric() {
                         CamelCard::Number(c.to_string().parse::<u16>().unwrap())
                     } else {
-                        CamelCard::Letter(c)
+                        match part {
+                            Part::One => CamelCard::LetterP1(c),
+                            Part::Two => CamelCard::LetterP2(c),
+                        }
                     }
                 })
                 .collect::<Vec<CamelCard>>()
@@ -222,16 +221,13 @@ fn get_day7_input() -> Vec<([CamelCard; 5], u32)> {
 }
 
 pub fn day7_p1() {
-    let inputs = get_day7_input();
-    // println!("{:#?}", &inputs);
+    let inputs = get_day7_input(Part::One);
     let mut hands: Vec<(CamelHand, u32)> = inputs
         .iter()
         .map(|x| (CamelHand::from_cards_p1(&x.0), x.1))
         .collect();
 
     hands.sort_by(|x, y| x.0.cmp(&y.0));
-    println!("sorted hands: {:#?}", hands);
-    // println!("sorted hands: {:#?}", hands);
     let total_winnings = hands
         .iter()
         .enumerate()
@@ -241,16 +237,13 @@ pub fn day7_p1() {
 }
 
 pub fn day7_p2() {
-    let inputs = get_day7_input();
-    // println!("{:#?}", &inputs);
+    let inputs = get_day7_input(Part::Two);
     let mut hands: Vec<(CamelHand, u32)> = inputs
         .iter()
         .map(|x| (CamelHand::from_cards_p2(&x.0), x.1))
         .collect();
 
     hands.sort_by(|x, y| x.0.cmp(&y.0));
-    println!("sorted hands: {:?}", hands);
-    // println!("sorted hands: {:#?}", hands);
     let total_winnings = hands
         .iter()
         .enumerate()
