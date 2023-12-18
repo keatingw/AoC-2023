@@ -1,4 +1,4 @@
-use std::{fs, ops::Mul};
+use std::fs;
 
 fn get_day11_input(path: &str) -> Vec<Vec<bool>> {
     let input_str = fs::read_to_string(path).unwrap();
