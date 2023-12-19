@@ -1,6 +1,7 @@
+use rayon::prelude::*;
 use std::{fs, str::FromStr};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum RecordType {
     Operational,
     Damaged,
@@ -52,45 +53,94 @@ fn get_day12_input(path: &str) -> Vec<(Vec<RecordType>, Vec<usize>)> {
         .collect()
 }
 
-fn calc_damaged_groups(records: &[RecordType]) -> Vec<usize> {
-    let mut contiguous_groups: Vec<usize> = vec![];
-    let mut group_size: usize = 0;
-    for (idx, i) in records.iter().enumerate() {
-        if let RecordType::Damaged = i {
-            group_size += 1;
-            // if at end of list and non-empty group then add to list
-            if idx == records.len() - 1 && group_size > 0 {
-                contiguous_groups.push(group_size.clone());
-            }
+fn count_groups(records: &[RecordType], groups: &[usize]) -> usize {
+    if records.len() == 0 {
+        // if no records left but still groups, fail
+        if groups.len() > 0 {
+            return 0;
+        // if no records left and no groups, succeed!
         } else {
-            if group_size > 0 {
-                contiguous_groups.push(group_size.clone());
-                group_size = 0;
+            return 1;
+        }
+    }
+    if groups.len() == 0 {
+        // if no groups but more damaged still exist then no ways to make it
+        if records.iter().any(|x| *x == RecordType::Damaged) {
+            return 0;
+        } else {
+            return 1;
+        }
+    }
+
+    // main cases: need to run through rest of list
+    // start accumulator
+    let mut result: usize = 0;
+
+    // if we're operational or treating this unknown as optional, skip a step
+    if let RecordType::Operational | RecordType::Unknown = records[0] {
+        result += count_groups(&records[1..], groups);
+    }
+
+    // if we're damaged or treating this unknown as damaged, try to build a group
+    if let RecordType::Damaged | RecordType::Unknown = records[0] {
+        // if we have enough elements left to make it in theory
+        if groups[0] <= records.len()
+            // *and* all the next N items are non-operational (so can make the group)
+            && records[..groups[0]]
+                .iter()
+                .all(|x| *x != RecordType::Operational)
+            // *and* we either will exactly hit the end, or the next item is possibly non-damaged
+            && (groups[0] == records.len() || records[groups[0]] != RecordType::Damaged)
+        {
+            // when we hit the end of the list, pass an empty record list
+            if groups[0] == records.len() {
+                result += count_groups(&vec![], &groups[1..])
+            } else {
+                // otherwise skip a group and continue
+                result += count_groups(&records[groups[0] + 1..], &groups[1..])
             }
         }
     }
-    contiguous_groups
+
+    result
 }
 
 pub fn day12_p1() {
-    let input = get_day12_input("examples/day12_example.txt");
+    let input = get_day12_input("examples/day12_input.txt");
     println!("{:#?}", input);
+    let mut cumsum = 0;
+    for (idx, (records, groups)) in input.iter().enumerate() {
+        let count = count_groups(records, groups);
+        println!("idx: {idx}, count: {count}");
+        cumsum += count;
+    }
+    println!("Total: {cumsum}");
 }
 
-#[cfg(test)]
-mod tests {
-    use crate::day12::{calc_damaged_groups, RecordType};
-    #[test]
-    fn damaged_groups() {
-        let records = vec![
-            RecordType::Damaged,
-            RecordType::Unknown,
-            RecordType::Unknown,
-            RecordType::Damaged,
-            RecordType::Damaged,
-            RecordType::Operational,
-            RecordType::Damaged,
-        ];
-        assert_eq!(calc_damaged_groups(&records), vec![1, 2, 1])
-    }
+pub fn day12_p2() {
+    let input = get_day12_input("examples/day12_input.txt");
+    println!("{:#?}", input);
+    let counts: Vec<usize> = input
+        .par_iter()
+        .enumerate()
+        .map(|(idx, (records, groups))| {
+            let mut unfolded_records: Vec<RecordType> = vec![];
+            let mut unfolded_groups: Vec<usize> = vec![];
+            for idx in 1..=5 {
+                for i in records {
+                    unfolded_records.push(i.clone());
+                }
+                if idx != 5 {
+                    unfolded_records.push(RecordType::Unknown);
+                }
+                for i in groups {
+                    unfolded_groups.push(i.clone());
+                }
+            }
+            let count = count_groups(&unfolded_records, &unfolded_groups);
+            println!("idx: {idx}, count: {count}");
+            count
+        })
+        .collect();
+    println!("Total: {}", counts.iter().sum::<usize>());
 }

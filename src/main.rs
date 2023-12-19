@@ -12,5 +12,5 @@ pub mod day11;
 pub mod day12;
 
 fn main() {
-    day12::day12_p1()
+    day12::day12_p2()
 }
