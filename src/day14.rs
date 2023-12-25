@@ -1,4 +1,8 @@
-use std::{collections::HashMap, fs, hash::Hash};
+use std::{
+    collections::{HashMap, HashSet},
+    fs,
+    hash::Hash,
+};
 
 #[derive(Debug, Eq, PartialEq, Clone, Hash)]
 enum Direction {
@@ -152,56 +156,51 @@ fn roll_box(mut square: Vec<Vec<Stone>>, direction: Direction) -> Vec<Vec<Stone>
     square
 }
 
-fn roll_box_memo(
-    square: Vec<Vec<Stone>>,
-    direction: Direction,
-    cache: &mut HashMap<String, Vec<Vec<Stone>>>,
-) -> Vec<Vec<Stone>> {
-    let cachestring = format!("{square:?}++{direction:?}");
-    match cache.get(&cachestring) {
-        Some(x) => x.to_vec(),
-        None => {
-            let out = roll_box(square, direction);
-            cache.insert(cachestring, out.clone());
-            out
-        }
-    }
-}
-
 pub fn day14_p2() {
     let mut input = get_day14_input("examples/day14_input.txt");
 
-    let mut cache = HashMap::new();
-    let mut total_load = 0;
-
+    let mut seen_set: HashSet<Vec<Vec<Stone>>> = HashSet::new();
+    let mut seen_vec: Vec<Vec<Vec<Stone>>> = vec![];
+    seen_set.insert(input.clone());
+    seen_vec.push(input.clone());
     let mut print;
-    for iter in 0..1_000_000_000 {
-        if iter % 100_000 == 0 {
+    let mut iter = 0;
+    loop {
+        if iter % 1 == 0 {
             print = true;
         } else {
             print = false;
         }
         if print {
             println!("Running {iter:>10}");
-            // println!("Running North");
         }
-        input = roll_box_memo(input, Direction::North, &mut cache);
-        // if print {
-        //     println!("Running West");
-        // }
-        input = roll_box_memo(input, Direction::West, &mut cache);
-        // if print {
-        //     println!("Running South");
-        // }
-        input = roll_box_memo(input, Direction::South, &mut cache);
-        // if print {
-        //     println!("Running East");
-        // }
-        input = roll_box_memo(input, Direction::East, &mut cache);
+
+        // do cycle
+        input = roll_box(input, Direction::North);
+        input = roll_box(input, Direction::West);
+        input = roll_box(input, Direction::South);
+        input = roll_box(input, Direction::East);
+
+        // add to seen cycles or break if already seen
+        if !seen_set.insert(input.clone()) {
+            break;
+        }
+        // add to vec to store index positions
+        seen_vec.push(input.clone());
+        iter += 1;
     }
 
+    let cycles = 1_000_000_000;
+    // save the first time we saw the end point of the cycle
+    let first_cycle_idx = seen_vec.iter().position(|x| x == &input).unwrap();
+    println!("First pos: {}", first_cycle_idx);
+    // end position is number of steps into the cycle, plus start point of cycle
+    let final_grid = seen_vec
+        [(cycles - first_cycle_idx) % (seen_vec.len() - first_cycle_idx) + first_cycle_idx]
+        .clone();
+    let mut total_load = 0;
     for col in 0..input[0].len() {
-        let col_vector: Vec<Stone> = input.iter().map(|x| x[col].clone()).collect();
+        let col_vector: Vec<Stone> = final_grid.iter().map(|x| x[col].clone()).collect();
         total_load += column_load(&col_vector);
     }
 
